@@ -56,5 +56,9 @@
         "temp/": true,
         "Temp/": true
     },
+<<<<<<< Updated upstream
     "dotnet.defaultSolution": "my-project.slnx"
+=======
+    "dotnet.defaultSolution": "my-project.sln"
+>>>>>>> Stashed changes
 }
