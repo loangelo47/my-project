@@ -22,6 +22,10 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
     bool isSprinting;
     bool isCrouching;
     bool isSliding;
+    bool isClimbing;
+    bool canClimb;
+    bool hasClimbed;
+    RaycastHit wallHit;
 
 
     public float slideSpeedIncrease;
@@ -33,8 +37,10 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
     public float sprintSpeed;
     public float crouchSpeed;
     public float airSpeed;
-
+    public float climbSpeed;
     float gravity;
+
+
     public float normalGravity;
 
     public float jumpHeight;
@@ -45,7 +51,13 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
     Vector3 crouchingCenter = new Vector3(0, 0.5f, 0);
     Vector3 standingCenter = new Vector3(0, 0, 0);
     float slideTimer;
+    float climbTimer;
+    float wallJumpTimer;
     public float maxSlideTimer;
+    public float maxClimbTimer;
+    public float maxWallJumpTimer;
+
+    bool isWallJumping;
 
     bool isWallRunning;
     bool hasWallRun = false;
@@ -105,11 +117,12 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
     {
         CheckWallRun();
         HandleInput();
+        CheckClimbing();
         if (isGrounded && !isSliding)
         {
             GroundedMovement();
         }
-        else if (!isGrounded && !isWallRunning)
+        else if (!isGrounded && !isWallRunning && !isClimbing)
         {
             Airmovement();
         }
@@ -127,6 +140,16 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
         {
             WallRunMovement();
             DecreaseSpeed(wallRunSpeedDecrease);
+        }
+        else if (isClimbing)
+        {
+            climbMovement();
+            climbTimer -= 1f * Time.deltaTime;
+            if (climbTimer < 0)
+            {
+                isClimbing = false;
+                hasClimbed = true;
+            }
         }
         GroundedMovement();
         checkGround();
@@ -193,11 +216,12 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
         {
             jumpCharges = 1;
             hasWallRun = false;
+            climbTimer = maxClimbTimer;
         }
     }
     void ApplyGravity()
     {
-        gravity = isWallRunning ? wallRunGravity : normalGravity;
+        gravity = isWallRunning ? wallRunGravity : isClimbing ? 0f : normalGravity;
         Yvelocity.y += gravity * Time.deltaTime;
         controller.Move( Yvelocity * Time.deltaTime );
     }
@@ -212,12 +236,23 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
             ExitWallRun();
             IncreaseSpeed(wallRunSpeedIncrease);
         }
+        hasClimbed = false;
+        climbTimer = maxClimbTimer;
         Yvelocity.y = Mathf.Sqrt( jumpHeight * -2f * normalGravity );
     }
     void Airmovement()
     {
         move.x += input.x * airSpeed;
         move.z += input.z * airSpeed;
+        if (isWallJumping)
+        {
+            move += forwardDirection;
+            wallJumpTimer -= 1f * Time.deltaTime;
+            if (wallJumpTimer >= 0)
+            {
+                isWallJumping = false;
+            }
+        }
 
         move = Vector3.ClampMagnitude(move, airSpeed);
     }
@@ -286,7 +321,11 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
     {
         isWallRunning = false;
         lastWallNormal = wallNormal;
+        forwardDirection = wallNormal;
+        isWallJumping = true;
+        wallJumpTimer = maxWallJumpTimer;
     }
+
     void WallRunMovement()
     {
         if(input.z > (forwardDirection.z - 10f) && input.z < (forwardDirection.z + 10f))
@@ -320,5 +359,30 @@ public class PlayerPhysicsAndMovement : MonoBehaviour
             WallRun();
             hasWallRun = true;
         }
+    }
+    void CheckClimbing()
+    {
+        canClimb = Physics.Raycast(transform.position, transform.forward, out wallHit, 0.7f, wallMask);
+        float wallAngle = Vector3.Angle(-wallHit.normal, transform.forward);
+        if (wallAngle <15 && !hasClimbed && canClimb)
+        {
+            isClimbing = true;
+        }
+        else
+        {
+            isClimbing = false;
+        }
+    }
+    void climbMovement()
+    {
+        forwardDirection =Vector3.up;
+        move.x += input.x * airSpeed;
+        move.z += input.z * airSpeed;
+
+        Yvelocity += forwardDirection;
+        speed = climbSpeed; 
+
+        move = Vector3.ClampMagnitude(move, speed);
+        Yvelocity = Vector3.ClampMagnitude(Yvelocity, speed);
     }
 }

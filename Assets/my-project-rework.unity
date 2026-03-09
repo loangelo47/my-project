@@ -937,11 +937,14 @@ MonoBehaviour:
   runSpeed: 8
   sprintSpeed: 12
   crouchSpeed: 4
-  airSpeed: 0.3
+  airSpeed: 0.1
+  climbSpeed: 5
   normalGravity: -13
   jumpHeight: 5
   wallRunGravity: -1
   maxSlideTimer: 2
+  maxClimbTimer: 1
+  maxWallJumpTimer: 0.1
   playerCamera: {fileID: 1117178695}
   specialFov: 120
   cameraChangeTime: 20
